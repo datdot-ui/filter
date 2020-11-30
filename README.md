@@ -1,2 +1,2 @@
 # datdot-ui-option
-A dropdown option component for datdot-ui-autocomplete
+A dropdown filter option component for datdot-ui-autocomplete
