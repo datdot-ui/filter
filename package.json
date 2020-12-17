@@ -1,0 +1,40 @@
+{
+  "name": "datdot-ui-filter-option",
+  "version": "0.0.0",
+  "description": "ui component",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "budo demo/demo.js:bundle.js --open --live",
+    "build": "browserify demo/demo.js -o bundle.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/playproject-io/datdot-ui-filter-option.git"
+  },
+  "keywords": [
+    "datdot",
+    "ui",
+    "component",
+    "widget",
+    "filter option"
+  ],
+  "author": "fionataeyang",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/playproject-io/datdot-ui-filter-option/issues"
+  },
+  "homepage": "https://github.com/playproject-io/datdot-ui-filter-option#readme",
+  "devDependencies": {
+    "budo": "^11.6.4",
+    "debug": "^4.1.1",
+    "ui-domlog": "github:fionataeyang/ui-domlog"
+  },
+  "dependencies": {
+    "bel": "^6.0.0",
+    "csjs-inject": "^1.0.1",
+    "datdot-ui-button": "github:fionataeyang/datdot-ui-button",
+    "datdot-ui-graphic": "github:fionataeyang/datdot-ui-graphic",
+    "date-fns": "^2.16.1"
+  }
+}
