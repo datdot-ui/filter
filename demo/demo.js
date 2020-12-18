@@ -56,11 +56,14 @@ function demoComponent() {
         showLog(message)
         if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 57})
         if (type === 'click') { 
-           if (from === 'filter-option') activeOption(message)
-            data.forEach( name => {
-                if (from === name) showLog({page: 'demo', from, flow, type: 'unchecked', filename, line: 61})
-            }) 
+            if (from === 'filter-option') activeOption(message)
         }
+        // close dropdown menu of filter-option  when document.body clicked
+        if (type === 'remove-active') {
+            recipients[from].state = type
+        }
+        if (type === 'unchecked') showLog({...message, filename, line: 65})
+        if (type === 'checked') showLog({...message, filename, line: 66})
     }
 
     // keep the scroll on bottom when the log displayed on the terminal
@@ -71,7 +74,6 @@ function demoComponent() {
             terminal.scrollTop = terminal.scrollHeight
         }
     )}
-
 
     /*********************************
     * ------ Promise() Element -------

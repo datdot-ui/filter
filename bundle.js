@@ -58,11 +58,14 @@ function demoComponent() {
         showLog(message)
         if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 57})
         if (type === 'click') { 
-           if (from === 'filter-option') activeOption(message)
-            data.forEach( name => {
-                if (from === name) showLog({page: 'demo', from, flow, type: 'unchecked', filename, line: 61})
-            }) 
+            if (from === 'filter-option') activeOption(message)
         }
+        // close dropdown menu of filter-option  when document.body clicked
+        if (type === 'remove-active') {
+            recipients[from].state = type
+        }
+        if (type === 'unchecked') showLog({...message, filename, line: 65})
+        if (type === 'checked') showLog({...message, filename, line: 66})
     }
 
     // keep the scroll on bottom when the log displayed on the terminal
@@ -73,7 +76,6 @@ function demoComponent() {
             terminal.scrollTop = terminal.scrollHeight
         }
     )}
-
 
     /*********************************
     * ------ Promise() Element -------
@@ -2135,12 +2137,37 @@ function filterOption ({page, flow, name, data}, protocol) {
     const optionAction = bel`<div class="${css.action} ${css.option}">${filterOption}</div>`
     // filter option
     const optionList = bel`<ul class="${css['option-list']}" onclick=${(e) => actionOptionList(e)}></ul>`
-   
     // get lits
-    optionListRender(data).then( buttons => {
+    const statusList = optionListRender(data).then( buttons => {
         buttons.map( item => { 
             const li = bel`<li>${item}</li>`
             optionList.append(li) 
+        })
+        return buttons
+    })
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.body.addEventListener('click', (event) => {
+            const target = event.target
+            // * if target is same as filterOption, then keep optionList opening
+            if (target === filterOption) return
+            // * find css name first of filterOption button
+            let style = [...filterOption.classList].filter( className => className.includes('active'))
+            // if class name condition is true
+            if (filterOption.classList.contains(style)) {
+                // * remove optionList when add css.hide
+                // ! cannot use function to repeat using, because it's loaded from document.body
+                // ! cannot read page, flow, name properties
+                optionList.classList.add(css.hide)
+                setTimeout( () => optionList.remove(), 500)
+                /* 
+                * filter-option button needs to send 'remove-active' for 
+                * main component and button component to check recipients[from].state 
+                * and remove active status 
+                */
+                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 50})
+                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 51})
+            }
         })
     })
 
@@ -2150,32 +2177,23 @@ function filterOption ({page, flow, name, data}, protocol) {
     * ------- Actions --------
     *************************/
     function actionOptionList (event) {
+        event.stopPropagation()
         const target = event.target
-        if (!target.classList.contains(css.status)) return
-        const icon = target.firstChild
+        const classList = [...target.classList]
+        const listStyle = classList.filter( style => style.includes('btn'))
+        if (!target.classList.contains(listStyle)) return
         // for recipients[name] using
         const name = `option-${target.innerText.toLowerCase().split(' ').join('')}`
         // if icon is not contained css.hide then do toggling it on unchecked/checked 
-        const type = icon.classList.contains(css.checked) ? 'unchecked' : 'checked'
-
-        if (type === 'checked') { 
-            icon.classList.add(css.checked)
-            icon.classList.remove(css.unchecked)
-        }
-
-        if (type === 'unchecked') {
-            icon.classList.remove(css.checked)
-            icon.classList.add(css.unchecked)
-        }
-        
-        recipients[name]({page: 'demo', from: target.innerText, flow: 'option-list', type, body: name})
-        const message = {page: 'demo', from: target.innerText, flow: 'option-list', type, body: name, filename, line: 156}
-        send2Parent(message)
+        const type = target.classList.contains(css.checked) ? 'unchecked' : 'checked'
+        target.classList.toggle(css.checked)
+        const message = {page: 'demo', from: target.innerText, flow: `${flow}/option-list`, type, body: name, filename, line: 72}
+        return send2Parent(message)
     }
 
     function displayOptionList (message) {
         const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type: 'active', body, filename, line: 52}
+        let log = {page, from, flow, type: 'active', body, filename, line: 78}
         recipients[from](log)
         optionAction.append(optionList)
         if (optionList.children.length > 0) optionList.classList.remove(css.hide)
@@ -2184,9 +2202,12 @@ function filterOption ({page, flow, name, data}, protocol) {
 
     function hideOptionList (message) {
         const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type, body, filename, line: 61}
+        let log = {page, from, flow, type, body, filename, line: 87}
         recipients[from](log)
         optionList.classList.add(css.hide)
+        // remove optionList when add css.hide
+        optionList.classList.add(css.hide)
+        setTimeout( () => optionList.remove(), 500)
         return send2Parent(log)
     }
 
@@ -2211,6 +2232,9 @@ function filterOption ({page, flow, name, data}, protocol) {
     *************************/
     function receive (message) {
         const {page, flow, from, type, action, body} = message
+        if (type === 'click') {
+            
+        }
         if ( from === 'filter-option') actionFilterOption(message)
         return send2Parent(message)
     }
@@ -2230,13 +2254,12 @@ function filterOption ({page, flow, name, data}, protocol) {
                 if (item === 'Hyperdrive') style = css.drive
                 if (item === 'Cabal') style = css.cabal
                 const content = bel`<div class=${css.status}>${check}<span class="${css.circle} ${style}"></span>${item}</div>`
-                const btn = button({page, flow: flow ? `${flow}/${widget}` : widget, name: item, content, style: 'link', color: 'link-white'}, optionProtocol(`option-${item.toLowerCase().split(' ').join('')}`))
+                const btn = button({page, flow: flow ? `${flow}/${widget}` : widget, name: item, content, style: 'link', color: 'link-white', custom: [css.checked]}, optionProtocol(`option-${item.toLowerCase().split(' ').join('')}`))
                 return btn
             })
             return resolve(lists)
         }).catch( err => { throw new Error(err)} )
     }
-
 }
 
 const css = csjs`
@@ -2283,11 +2306,16 @@ const css = csjs`
     color: #fff;
     background-color: #666;
 }
-.option-list .icon-check {
+.option-list li > button .icon-check {
+    opacity: 0;
     pointer-events: none;
+    transition: opacity 0.3s linear;
 }
 .option-list .icon-check svg path {
     stroke: #fff;
+}
+.option-list li > button.checked .icon-check {
+    opacity: 1;
 }
 .status {
     display: grid;
@@ -2295,6 +2323,7 @@ const css = csjs`
     grid-template-columns: 18px 27px auto;
     padding: 0 10px;
     align-items: center;
+    pointer-events: none;
 }
 .circle {
     display: block;
@@ -2322,20 +2351,12 @@ const css = csjs`
 }
 .icon {
     width: 16px;
+    pointer-events: none;
 }
-.icon-check {
-    opacity: 0;
-    transition: opacity .25s linear;
-}
+.icon-check {}
 .icon-option {}
 .hide {
     animation: disappear .25s linear forwards;
-}
-.checked {
-    opacity: 1;
-}
-.unchecked {
-    opacity: 0;
 }
 @keyframes showup {
     0% {
