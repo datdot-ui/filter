@@ -118,6 +118,9 @@ body {
 .container > div {
     margin-bottom: 20px;
 }
+.content {
+    width: 150px;
+}
 .content > div button {
     margin-right: 10px;
 }
@@ -2267,7 +2270,6 @@ const css = csjs`
     position: relative;
     display: grid;
     justify-items: right;
-    width: 150px;
 }
 .option > button[class^="btn"] {
     position: relative;
@@ -2278,7 +2280,7 @@ const css = csjs`
     position: absolute;
     z-index: 2;
     right: 0;
-    width: 100%;
+    width: 160px;
     animation: showup .25s linear forwards;
 }
 .option-list, .option-list li  { 

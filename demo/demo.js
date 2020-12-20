@@ -116,6 +116,9 @@ body {
 .container > div {
     margin-bottom: 20px;
 }
+.content {
+    width: 150px;
+}
 .content > div button {
     margin-right: 10px;
 }
