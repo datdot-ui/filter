@@ -28,7 +28,15 @@ function filterOption ({page, flow, name, data}, protocol) {
         return buttons
     })
 
-    window.addEventListener('DOMContentLoaded', () => {
+    // ! use window.onload is not worked
+    document.addEventListener('DOMContentloaded', triggerOptionInactive())
+
+    return optionAction
+
+    /*************************
+    * ------- Actions --------
+    *************************/
+    function triggerOptionInactive () {
         document.body.addEventListener('click', (event) => {
             const target = event.target
             // * if target is same as filterOption, then keep optionList opening
@@ -47,17 +55,12 @@ function filterOption ({page, flow, name, data}, protocol) {
                 * main component and button component to check recipients[from].state 
                 * and remove active status 
                 */
-                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 50})
-                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 51})
+                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 61})
+                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 62})
             }
         })
-    })
+    }
 
-    return optionAction
-
-    /*************************
-    * ------- Actions --------
-    *************************/
     function actionOptionList (event) {
         event.stopPropagation()
         const target = event.target
