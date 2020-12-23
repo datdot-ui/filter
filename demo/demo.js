@@ -7,7 +7,13 @@ const domlog = require('ui-domlog')
 
 function demoComponent() {
     let recipients = []
-    const data = ['Available', 'Not available', 'Hypercore', 'Hyperdrive', 'Cabal']
+    const data = [
+        {id: 1, status: "Available", active: true}, 
+        {id: 2, status: "Not available", active: false}, 
+        {id: 3, status: "Hypercore", active: true},
+        {id: 4, status: "Hyperdrive", active: false},
+        {id: 5, status: "Cabal", active: true}
+    ]
 
     // content
     const content = bel`
@@ -33,16 +39,31 @@ function demoComponent() {
         return container
     }
 
+    /*************************
+    * ------- Actions --------
+    *************************/
     function activeOption (message) {
         const { page, from, flow } = message
         let state = recipients[from].state
         if (state === undefined) recipients[from].state = 'self-active'
         if (state === 'self-active') recipients[from].state = 'remove-active'
         if (state === 'remove-active') recipients[from].state = 'self-active'
-        recipients[from]({page, from, flow, type: recipients[from].state, filename, line: 42})
+        recipients[from]({page, from, flow, type: recipients[from].state, filename, line: 51})
     }
 
-    // original protocol for all use
+    function actionToggleCheck (message) {
+        const { body } = message
+        data.map( item => { 
+            // * better to use return item for add more conditions
+            if (item.id === body ) item.active = !item.active 
+            return item
+        })
+        showLog({...message, filename, line: 61})
+    }
+
+     /*************************
+    * ------- Protocol --------
+    *************************/
     function protocol (name) {
         return send => {
             recipients[name] = send
@@ -50,11 +71,13 @@ function demoComponent() {
         }
     }
 
-    // receive
+    /*************************
+    * ------ Receivers -------
+    *************************/
     function receive (message) {
         const { page, from, flow, type, action, body } = message
         showLog(message)
-        if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 57})
+        if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 80})
         if (type === 'click') { 
             if (from === 'filter-option') activeOption(message)
         }
@@ -62,8 +85,8 @@ function demoComponent() {
         if (type === 'remove-active') {
             recipients[from].state = type
         }
-        if (type === 'unchecked') showLog({...message, filename, line: 65})
-        if (type === 'checked') showLog({...message, filename, line: 66})
+        if (type === 'unchecked') actionToggleCheck(message)
+        if (type === 'checked') actionToggleCheck(message)
     }
 
     // keep the scroll on bottom when the log displayed on the terminal
@@ -107,7 +130,8 @@ body {
 .wrap {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 75vh 25vh;
+    grid-template-rows: 75% 25%;
+    height: 100%;
 }
 .container {
     padding: 25px;

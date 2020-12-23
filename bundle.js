@@ -9,7 +9,13 @@ const domlog = require('ui-domlog')
 
 function demoComponent() {
     let recipients = []
-    const data = ['Available', 'Not available', 'Hypercore', 'Hyperdrive', 'Cabal']
+    const data = [
+        {id: 1, status: "Available", active: true}, 
+        {id: 2, status: "Not available", active: false}, 
+        {id: 3, status: "Hypercore", active: true},
+        {id: 4, status: "Hyperdrive", active: false},
+        {id: 5, status: "Cabal", active: true}
+    ]
 
     // content
     const content = bel`
@@ -35,16 +41,31 @@ function demoComponent() {
         return container
     }
 
+    /*************************
+    * ------- Actions --------
+    *************************/
     function activeOption (message) {
         const { page, from, flow } = message
         let state = recipients[from].state
         if (state === undefined) recipients[from].state = 'self-active'
         if (state === 'self-active') recipients[from].state = 'remove-active'
         if (state === 'remove-active') recipients[from].state = 'self-active'
-        recipients[from]({page, from, flow, type: recipients[from].state, filename, line: 42})
+        recipients[from]({page, from, flow, type: recipients[from].state, filename, line: 51})
     }
 
-    // original protocol for all use
+    function actionToggleCheck (message) {
+        const { body } = message
+        data.map( item => { 
+            // * better to use return item for add more conditions
+            if (item.id === body ) item.active = !item.active 
+            return item
+        })
+        showLog({...message, filename, line: 61})
+    }
+
+     /*************************
+    * ------- Protocol --------
+    *************************/
     function protocol (name) {
         return send => {
             recipients[name] = send
@@ -52,11 +73,13 @@ function demoComponent() {
         }
     }
 
-    // receive
+    /*************************
+    * ------ Receivers -------
+    *************************/
     function receive (message) {
         const { page, from, flow, type, action, body } = message
         showLog(message)
-        if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 57})
+        if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 80})
         if (type === 'click') { 
             if (from === 'filter-option') activeOption(message)
         }
@@ -64,8 +87,8 @@ function demoComponent() {
         if (type === 'remove-active') {
             recipients[from].state = type
         }
-        if (type === 'unchecked') showLog({...message, filename, line: 65})
-        if (type === 'checked') showLog({...message, filename, line: 66})
+        if (type === 'unchecked') actionToggleCheck(message)
+        if (type === 'checked') actionToggleCheck(message)
     }
 
     // keep the scroll on bottom when the log displayed on the terminal
@@ -109,7 +132,8 @@ body {
 .wrap {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 75vh 25vh;
+    grid-template-rows: 75% 25%;
+    height: 100%;
 }
 .container {
     padding: 25px;
@@ -2141,9 +2165,11 @@ function filterOption ({page, flow, name, data}, protocol) {
     // filter option
     const optionList = bel`<ul class="${css['option-list']}" onclick=${(e) => actionOptionList(e)}></ul>`
     // get lits
-    const statusList = optionListRender(data).then( buttons => {
-        buttons.map( item => { 
+    optionListRender(data).then( buttons => {
+        buttons.map( (item, i) => { 
             const li = bel`<li>${item}</li>`
+            // need to set an id to button for toggle using, because Safari cannot compare body or from (string issue)
+            item.setAttribute('id', i+1)
             optionList.append(li) 
         })
         return buttons
@@ -2176,8 +2202,8 @@ function filterOption ({page, flow, name, data}, protocol) {
                 * main component and button component to check recipients[from].state 
                 * and remove active status 
                 */
-                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 61})
-                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 62})
+                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 60})
+                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 61})
             }
         })
     }
@@ -2189,17 +2215,17 @@ function filterOption ({page, flow, name, data}, protocol) {
         const listStyle = classList.filter( style => style.includes('btn'))
         if (!target.classList.contains(listStyle)) return
         // for recipients[name] using
-        const name = `option-${target.innerText.toLowerCase().split(' ').join('')}`
+        const id = target.id
         // if icon is not contained css.hide then do toggling it on unchecked/checked 
         const type = target.classList.contains(css.checked) ? 'unchecked' : 'checked'
         target.classList.toggle(css.checked)
-        const message = {page: 'demo', from: target.innerText, flow: `${flow}/option-list`, type, body: name, filename, line: 72}
+        const message = {page: 'demo', from: String(target.innerText), flow: `${flow}/option-list`, type, body: Number(id), filename, line: 77}
         return send2Parent(message)
     }
 
     function displayOptionList (message) {
         const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type: 'active', body, filename, line: 78}
+        let log = {page, from, flow, type: 'active', body, filename, line: 83}
         recipients[from](log)
         optionAction.append(optionList)
         if (optionList.children.length > 0) optionList.classList.remove(css.hide)
@@ -2208,7 +2234,7 @@ function filterOption ({page, flow, name, data}, protocol) {
 
     function hideOptionList (message) {
         const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type, body, filename, line: 87}
+        let log = {page, from, flow, type, body, filename, line: 92}
         recipients[from](log)
         optionList.classList.add(css.hide)
         // remove optionList when add css.hide
@@ -2238,9 +2264,7 @@ function filterOption ({page, flow, name, data}, protocol) {
     *************************/
     function receive (message) {
         const {page, flow, from, type, action, body} = message
-        if (type === 'click') {
-            
-        }
+        if (type === 'click') {}
         if ( from === 'filter-option') actionFilterOption(message)
         return send2Parent(message)
     }
@@ -2253,14 +2277,16 @@ function filterOption ({page, flow, name, data}, protocol) {
             if (data === undefined) reject( )
             const lists = data.map( item => {
                 let style
-                const check = svg( { css: `${css.icon} ${css['icon-check']} ${css.checked}`, path: 'assets/check.svg' })
-                if (item === 'Available') style = css.online
-                if (item === 'Not available') style = css.offline
-                if (item === 'Hypercore') style = css.core
-                if (item === 'Hyperdrive') style = css.drive
-                if (item === 'Cabal') style = css.cabal
-                const content = bel`<div class=${css.status}>${check}<span class="${css.circle} ${style}"></span>${item}</div>`
-                const btn = button({page, flow: flow ? `${flow}/${widget}` : widget, name: item, content, style: 'link', color: 'link-white', custom: [css.checked]}, optionProtocol(`option-${item.toLowerCase().split(' ').join('')}`))
+                const check = svg( { css: `${css.icon} ${css['icon-check']}`, path: 'assets/check.svg' })
+                const circle = bel`<span class=${css.circle}></span>`
+                if (item.status === 'Available') style = css.on
+                if (item.status === 'Not available')  style = css.off
+                if (item.status === 'Hypercore') style = css.core
+                if (item.status === 'Hyperdrive') style = css.drive
+                if (item.status === 'Cabal') style = css.cabal
+                circle.classList.add(style)
+                const content = bel`<div class=${css.status}>${check}${circle}${item.status}</div>`
+                const btn = button({page, flow: flow ? `${flow}/${widget}` : widget, name: item.status, content, style: 'link', color: 'link-white', custom: item.active ? [css.checked] : ''}, optionProtocol(`${item.status}`))
                 return btn
             })
             return resolve(lists)
@@ -2339,11 +2365,11 @@ const css = csjs`
     justify-self: center;
     pointer-events: none;
 }
-.online {
+.on {
     background-color: #109B36;
 }
-.offline {
-    background-color: #D9D9D9;
+.off {
+    background-color: #d9d9d9;
 }
 .core {
     background-color: #BCE0FD;
