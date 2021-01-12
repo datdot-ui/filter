@@ -2389,6 +2389,17 @@ const css = csjs`
 .hide {
     animation: disappear .25s linear forwards;
 }
+@media screen and (max-width: 503px) {
+    .option button {
+        background-color: rgba(0, 0, 0, .15);
+    }
+    .option button[class*='active'] {
+        background-color: rgba(0, 0, 0, 1);
+    }
+    .option button svg g {
+        fill: rgba(255,255,255, 1);
+    }
+}
 @keyframes showup {
     0% {
         opacity: 0;
