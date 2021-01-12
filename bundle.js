@@ -949,24 +949,18 @@ function button ({page, flow = null, name, content, style, color, custom, curren
         return state = update
     }
 
-    function toggleActive (boolean, message) {
+    function toggleActive (isActive, message) {
         const { page, from, flow } = message
-        if (boolean) {
-            let newState = setState('self-active')
-            send2Parent({page, flow, from, type: 'state', body: newState, filename, line: 51})
-            button.classList.add(css.active)
-        } else {
-            let newState = setState('remove-active')
-            send2Parent({page, flow, from, type: 'state', body: newState, filename, line: 55})
-            button.classList.remove(css.active)
-        }
-        
+        let newState = isActive ? setState('self-active') : setState('remove-active')
+        button.classList.toggle(css.active)
+        return send2Parent({page, flow, from, type: 'state', body: newState, filename, line: 51})
     }
 
     function receive(message) {
         const { type } = message
         // console.log('received from main component', message )
         if ( type === 'current-active' ) button.classList.add(css.current)
+        if ( type === 'remove-current' ) button.classList.remove(css.current)
         if ( type === 'disabled' ) button.setAttribute('disabled', true)
         if ( type === 'active' ) toggleActive(true, message)
         if ( type === 'remove-active' ) toggleActive(false, message)
@@ -984,7 +978,7 @@ const css = csjs`
     cursor: pointer;
     outline: none;
     overflow: hidden;
-    transition: background-color .3s, border .3s, color .3s ease-in-out;
+    transition: color .3s, background-color .3s, border .3s ease-in-out;
 }
 .btn svg g {
     transition: fill .3s linear;
@@ -1089,9 +1083,18 @@ const css = csjs`
     color: #fff;
     background-color: #333;
 }
+.dark svg g {
+    fill: #fff;
+}
+.dark.active {
+    background-color: #000;
+}
 .grey {
     color: #fff;
     background-color: #9A9A9A;
+}
+.grey svg g {
+    fill: #fff;
 }
 .white {
     color: #707070;
@@ -1100,6 +1103,9 @@ const css = csjs`
 .white:hover {
     color: #fff;
     background-color: #d3d3d3;
+}
+.white.active svg g {
+    fill: #fff;
 }
 .list {
     color: #707070;
@@ -1149,7 +1155,7 @@ svg {
     padding-top: 2px;
 }
 .btn[disabled], .btn[disabled]:hover {
-    color: #fff;
+    color: #a9a9a9;
     background-color: rgba(217, 217, 217, 1);
     cursor: not-allowed;
 }
@@ -1186,6 +1192,19 @@ svg {
 .active {
     color: #fff;
     background-color: #000;
+}
+.tab {
+    padding: 15px;
+    background-color: #D9D9D9;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    margin-right: 2px;
+    color: #000;
+    cursor: pointer;
+    text-transform: capitalize;
+}
+.tab.current {
+    background-color: #fff;
 }
 @keyframes ripples {
     0% {
@@ -2388,17 +2407,6 @@ const css = csjs`
 .icon-option {}
 .hide {
     animation: disappear .25s linear forwards;
-}
-@media screen and (max-width: 503px) {
-    .option button {
-        background-color: rgba(0, 0, 0, .15);
-    }
-    .option button[class*='active'] {
-        background-color: rgba(0, 0, 0, 1);
-    }
-    .option button svg g {
-        fill: rgba(255,255,255, 1);
-    }
 }
 @keyframes showup {
     0% {
