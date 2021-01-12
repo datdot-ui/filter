@@ -2179,7 +2179,7 @@ function filterOption ({page, flow, name, data}, protocol) {
     // icon
     const iconOption = svg( { css: `${css.icon} ${css['icon-option']}`, path: 'assets/option.svg' })
     // button
-    const filterOption = button({page, flow: flow ? `${flow}/${widget}` : widget,  name: 'filter-option', content: iconOption, style: 'default', color: 'fill-grey'}, optionProtocol('filter-option'))
+    const filterOption = button({page, flow: flow ? `${flow}/${widget}` : widget,  name: 'filter-option', content: iconOption, style: 'default', color: 'white'}, optionProtocol('filter-option'))
     const optionAction = bel`<div class="${css.action} ${css.option}">${filterOption}</div>`
     // filter option
     const optionList = bel`<ul class="${css['option-list']}" onclick=${(e) => actionOptionList(e)}></ul>`
@@ -2319,10 +2319,13 @@ const css = csjs`
     display: grid;
     justify-items: right;
 }
-.option > button[class^="btn"] {
-    position: relative;
-    z-index: 3;
-    margin-right: 0;
+.option > button[name="filter-option"] {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .option-list {
     position: absolute;
