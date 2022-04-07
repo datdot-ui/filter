@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/datdotorg/datdot-ui-filter-option.git"
+    "url": "git+https://github.com/datdot-ui/filter.git"
   },
   "keywords": [
     "datdot",
@@ -22,9 +22,9 @@
   "author": "datdotorg",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/datdotorg/datdot-ui-filter-option/issues"
+    "url": "https://github.com/datdot-ui/filter/issues"
   },
-  "homepage": "https://github.com/datdotorg/datdot-ui-filter-option#readme",
+  "homepage": "https://github.com/datdot-ui/filter#readme",
   "devDependencies": {
     "budo": "^11.6.4",
     "debug": "^4.1.1",
