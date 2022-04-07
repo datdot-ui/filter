@@ -3,10 +3,44 @@ const csjs = require('csjs-inject')
 const path = require('path')
 const filename = path.basename(__filename)
 const option = require('..')
-const domlog = require('ui-domlog')
+const message_maker = require('message-maker')
 
-function demoComponent() {
-    let recipients = []
+var id = 0
+
+function demo() {
+// ---------------------------------------------------------------
+    const myaddress = `demo-${id++}`
+    const inbox = {}
+    const outbox = {}
+    const recipients = {}
+    const names = {}
+    const message_id = to => ( outbox[to] = 1 + (outbox[to]||0) )
+
+    function make_protocol (name) {
+        return function protocol (address, notify) {
+            names[address] = recipients[name] = { name, address, notify, make: message_maker(myaddress) }
+            return { notify: listen, address: myaddress }
+        }
+    }
+    function listen (msg) {
+        console.log('Demo receives', { msg })
+        const { head, refs, type, data, meta } = msg // receive msg
+        inbox[head.join('/')] = msg                  // store msg
+        const [from] = head
+        const name = names[from].name
+        // handlers
+        if (type === 'click') { 
+            if (name === 'filter-option') activeOption(name)
+        }
+        // close dropdown menu of filter-option  when document.body clicked
+        if (type === 'remove-active') {
+            state[name] = type
+        }
+        if (type === 'unchecked') actionToggleCheck(message)
+        if (type === 'checked') actionToggleCheck(message)
+    }
+// ---------------------------------------------------------------
+    const state = {}
     const data = [
         {id: 1, status: "Available", active: true}, 
         {id: 2, status: "Not available", active: false}, 
@@ -18,7 +52,7 @@ function demoComponent() {
     // content
     const content = bel`
     <div class=${css.content}>
-        ${option({page: 'demo', flow: 'filter', name: 'filter-option', data}, protocol('filter-option'))}
+        ${option({ name: 'filter-option', data }, make_protocol('filter-option'))}
     </div>`
     
     // show logs
@@ -42,13 +76,13 @@ function demoComponent() {
     /*************************
     * ------- Actions --------
     *************************/
-    function activeOption (message) {
-        const { page, from, flow } = message
-        let state = recipients[from].state
-        if (state === undefined) recipients[from].state = 'self-active'
-        if (state === 'self-active') recipients[from].state = 'remove-active'
-        if (state === 'remove-active') recipients[from].state = 'self-active'
-        recipients[from]({page, from, flow, type: recipients[from].state, filename, line: 51})
+    function activeOption (name) {
+        let old_state = state[name]
+        if (old_state === undefined) state[name] = 'self-active'
+        if (old_state === 'self-active') state[name] = 'remove-active'
+        if (old_state === 'remove-active') state[name] = 'self-active'
+        const { notify: name_notify, make: name_make, address: name_address } = recipients[name]
+        name_notify(name_make({ to: name_address, type: state[name], data: {filename, line: 51} }))
     }
 
     function actionToggleCheck (message) {
@@ -58,55 +92,6 @@ function demoComponent() {
             if (item.id === body ) item.active = !item.active 
             return item
         })
-        showLog({...message, filename, line: 61})
-    }
-
-     /*************************
-    * ------- Protocol --------
-    *************************/
-    function protocol (name) {
-        return send => {
-            recipients[name] = send
-            return receive
-        }
-    }
-
-    /*************************
-    * ------ Receivers -------
-    *************************/
-    function receive (message) {
-        const { page, from, flow, type, action, body } = message
-        showLog(message)
-        if (type === 'init') showLog({page: 'demo', from, flow, type: 'ready', body, filename, line: 80})
-        if (type === 'click') { 
-            if (from === 'filter-option') activeOption(message)
-        }
-        // close dropdown menu of filter-option  when document.body clicked
-        if (type === 'remove-active') {
-            recipients[from].state = type
-        }
-        if (type === 'unchecked') actionToggleCheck(message)
-        if (type === 'checked') actionToggleCheck(message)
-    }
-
-    // keep the scroll on bottom when the log displayed on the terminal
-    function showLog (message) { 
-        sendMessage(message)
-        .then( log => {
-            terminal.append(log)
-            terminal.scrollTop = terminal.scrollHeight
-        }
-    )}
-
-    /*********************************
-    * ------ Promise() Element -------
-    *********************************/
-    async function sendMessage (message) {
-        return await new Promise( (resolve, reject) => {
-            if (message === undefined) reject('no message import')
-            const log = domlog(message)
-            return resolve(log)
-        }).catch( err => { throw new Error(err) } )
     }
     
 }
@@ -167,4 +152,4 @@ body {
 }
 `
 
-document.body.append( demoComponent() )
+document.body.append(demo())

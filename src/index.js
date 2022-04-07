@@ -1,21 +1,59 @@
 const bel = require('bel')
 const csjs = require('csjs-inject')
 const button = require('datdot-ui-button')
-const svg = require('datdot-ui-graphic')
+const icon = require('datdot-ui-icon')
 const path = require('path')
 const filename = path.basename(__filename)
+const message_maker = require('message-maker')
+
+var id = 0
+var count = 0
 
 module.exports = filterOption
 
-function filterOption ({page, flow, name, data}, protocol) {
-    const widget = 'ui-filter-option'
-    const send2Parent = protocol( receive )
-    send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'init', filename, line: 13})
-    let recipients = []
+function filterOption ({ name, data }, parent_protocol) {
+
+// ---------------------------------------------------------------
+    const myaddress = `${__filename}-${id++}`
+    const inbox = {}
+    const outbox = {}
+    const recipients = {}
+    const names = {}
+    const message_id = to => (outbox[to] = 1 + (outbox[to]||0))
+
+    const {notify, address} = parent_protocol(myaddress, listen)
+    names[address] = recipients['parent'] = { name: 'parent', notify, address, make: message_maker(myaddress) }
+    notify(recipients['parent'].make({ to: address, type: 'ready', refs: ['old_logs', 'new_logs'] }))
+
+    function make_protocol (name) {
+        return function protocol (address, notify) {
+            names[address] = recipients[name] = { name, address, notify, make: message_maker(myaddress) }
+            return { notify: listen, address: myaddress }
+        }
+    }
+
+    function listen (msg) {
+        const {head, refs, type, data, meta } = msg
+        inbox[head.join('/')] = msg                  // store msg
+        const [from, to, msg_id] = head    
+        console.log('Index receives', { msg })
+        const { make } = recipients['parent']
+        // handlers
+        if (type === 'ready') return
+        if (type ==='click' && names[from].name.includes('filter-option')) actionFilterOption(msg)
+        notify(make({ to: address, type, data }))
+    }
+// ---------------------------------------------------------------  
+
     // icon
-    const iconOption = svg( { css: `${css.icon} ${css['icon-option']}`, path: 'assets/option.svg' })
+    // const iconOption = icon({ theme: { style: `${css.icon}` }, path: './src/assets', name: 'option' }, make_protocol(`icon-${count++}`))
     // button
-    const filterOption = button({page, flow: flow ? `${flow}/${widget}` : widget,  name: 'filter-option', content: iconOption, style: 'default', color: 'white'}, optionProtocol('filter-option'))
+    const theme1 = {
+        style: `
+            ${css['filter-option-button']} ${css['option-list']}
+        `
+    }
+    const filterOption = button({ role: 'listbox', theme: theme1, classlist: `${css['filter-option-button']}`, name: 'filter-option', icons: {select: { name: 'option', is_shadow: true, theme: {props: { fill: 'white'}}} } }, make_protocol(`filter-option-${count++}`))
     const optionAction = bel`<div class="${css.action} ${css.option}">${filterOption}</div>`
     // filter option
     const optionList = bel`<ul class="${css['option-list']}" onclick=${(e) => actionOptionList(e)}></ul>`
@@ -57,8 +95,10 @@ function filterOption ({page, flow, name, data}, protocol) {
                 * main component and button component to check recipients[from].state 
                 * and remove active status 
                 */
-                recipients[name]({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 60})
-                return send2Parent({page, from: name, flow: flow ? `${flow}/${widget}` : widget, type: 'remove-active', filename, line: 61})
+                const { make } = recipients['parent']
+                const { notify: name_notify, make: name_make, address: name_address } = recipients[name]
+                name_notify(name_make({ to: name_address, type: 'remove-active' }))
+                notify(make({ to: address, type: 'remove-active' }))
             }
         })
     }
@@ -74,65 +114,47 @@ function filterOption ({page, flow, name, data}, protocol) {
         // if icon is not contained css.hide then do toggling it on unchecked/checked 
         const type = target.classList.contains(css.checked) ? 'unchecked' : 'checked'
         target.classList.toggle(css.checked)
-        const message = {page: 'demo', from: String(target.innerText), flow: `${flow}/option-list`, type, body: Number(id), filename, line: 77}
-        return send2Parent(message)
+
+        const { make } = recipients['parent']
+        notify(make({ to: address, type, data: { id: Number(id)} }))
     }
 
-    function displayOptionList (message) {
-        const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type: 'active', body, filename, line: 83}
-        recipients[from](log)
+    function displayOptionList (msg) {
         optionAction.append(optionList)
         if (optionList.children.length > 0) optionList.classList.remove(css.hide)
-        return send2Parent(log)
     }
 
-    function hideOptionList (message) {
-        const {page, from, flow, type, body, action} = message
-        let log = {page, from, flow, type, body, filename, line: 92}
-        recipients[from](log)
+    function hideOptionList (msg) {
         optionList.classList.add(css.hide)
         // remove optionList when add css.hide
         optionList.classList.add(css.hide)
         setTimeout( () => optionList.remove(), 500)
-        return send2Parent(log)
     }
 
-    function actionFilterOption (message) {
-        const { type } = message
-        if (type === 'self-active') displayOptionList(message)
-        if (type === 'remove-active') hideOptionList(message)
+    function actionFilterOption (msg) {
+        const { type, data: { expanded } } = msg
+        if (expanded) displayOptionList(msg)
+        else if (!expanded) hideOptionList(msg)
     }
 
-    /*************************
-    * ------- Protocol --------
-    *************************/
-    function optionProtocol (name) {
-        return send => {
-            recipients[name] = send
-            return receive
-        }
-    }
-
-    /*************************
-    * ------ Receivers -------
-    *************************/
-    function receive (message) {
-        const {page, flow, from, type, action, body} = message
-        if (type === 'click') {}
-        if ( from === 'filter-option') actionFilterOption(message)
-        return send2Parent(message)
-    }
 
     /*********************************
     * ------ Promise() Element -------
     *********************************/
+
+
     async function optionListRender (data) {
+        const theme2 = {
+            style: `
+             ${css.icon} ${css.circle} ${css['option-list-el']}
+            `
+        }
+        
         return await new Promise((resolve, reject) => {
             if (data === undefined) reject( )
             const lists = data.map( item => {
                 let style
-                const check = svg( { css: `${css.icon} ${css['icon-check']}`, path: 'assets/check.svg' })
+                const check = icon({ theme: { style: `${css.icon}` }, name: 'check', path: './src/svg' }, make_protocol(`icon-${count++}`))
                 const circle = bel`<span class=${css.circle}></span>`
                 if (item.status === 'Available') style = css.on
                 if (item.status === 'Not available')  style = css.off
@@ -140,8 +162,7 @@ function filterOption ({page, flow, name, data}, protocol) {
                 if (item.status === 'Hyperdrive') style = css.drive
                 if (item.status === 'Cabal') style = css.cabal
                 circle.classList.add(style)
-                const content = bel`<div class=${css.status}>${check}${circle}${item.status}</div>`
-                const btn = button({page, flow: flow ? `${flow}/${widget}` : widget, name: item.status, content, style: 'link', color: 'link-white', custom: item.active ? [css.checked] : ''}, optionProtocol(`${item.status}`))
+                const btn = button({ theme: theme2 , classlist: `${css['option-list-el']}`, role: 'button', name: item.status, icons: { icon: { name: 'check', classlist: `${css.icon}`, is_shadow: true, theme: {props: { fill: 'white'}} }, select: { name: 'check' } }, body: item.status }, make_protocol(`${item.status}-${count++}`))
                 return btn
             })
             return resolve(lists)
@@ -150,12 +171,11 @@ function filterOption ({page, flow, name, data}, protocol) {
 }
 
 const css = csjs`
-.option {
-    position: relative;
-    display: grid;
-    justify-items: right;
-}
-.option > button[name="filter-option"] {
+.filter-option-button {
+    background-color: black;
+    border-radius: 8px;
+    color: #707070;
+    color: white;
     padding: 0;
     width: 44px;
     height: 44px;
@@ -163,19 +183,39 @@ const css = csjs`
     justify-content: center;
     align-items: center;
 }
-.option-list {
-    position: absolute;
-    z-index: 2;
-    right: 0;
-    width: 160px;
-    animation: showup .25s linear forwards;
+.filter-option-button:hover {
+    color: black;
+    transition: background-color 0.3s linear;
+    background-color: #707070;
 }
-.option-list, .option-list li  { 
+.option-list-el {
+    margin: 0 10px 0 0;
+    width: 100%;
+    text-align: left;
+    transition: background-color 0.3s linear;
+    color: white;
+}
+.option-list-el:hover {
+    background-color: #707070;
+    transition: background-color 0.3s linear;
+    color: black;
+}
+.option {
+    position: relative;
+    display: grid;
+    justify-items: right;
+    animation: showup .25s linear forwards;
     margin: 0; 
+}
+.option-list {
+    margin: 0;
     padding: 0;
     list-style: none;
 }
-.option-list li > button {
+.option-list li  { 
+    margin: 0; 
+    padding: 0;
+    list-style: none;
     background-color: #000;
     margin: 0;
     padding: 0;
@@ -183,17 +223,13 @@ const css = csjs`
     text-align: left;
     transition: background-color 0.3s linear;
 }
-.option-list li:first-child > button {
+.option-list li:first-child {
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
 }
-.option-list li:last-child > button {
+.option-list li:last-child {
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
-}
-.option-list li > button:hover {
-    color: #fff;
-    background-color: #666;
 }
 .option-list li > button .icon-check {
     opacity: 0;
@@ -241,6 +277,7 @@ const css = csjs`
 .icon {
     width: 16px;
     pointer-events: none;
+    opacity: 1;
 }
 .icon-check {}
 .icon-option {}
