@@ -1,6 +1,6 @@
 {
   "name": "datdot-ui-filter-option",
-  "version": "0.0.0",
+  "version": "0.0.0-prealpha",
   "description": "ui component",
   "main": "src/index.js",
   "scripts": {
@@ -28,13 +28,13 @@
   "devDependencies": {
     "budo": "^11.6.4",
     "debug": "^4.1.1",
-    "ui-domlog": "github:fionataeyang/ui-domlog"
+    "ui-domlog": "github:datdot-ui/ui-domlog#v0.0.0-prealpha"
   },
   "dependencies": {
     "bel": "^6.0.0",
     "csjs-inject": "^1.0.1",
-    "datdot-ui-button": "github:fionataeyang/datdot-ui-button",
-    "datdot-ui-graphic": "github:fionataeyang/datdot-ui-graphic",
+    "datdot-ui-button": "github:datdot-ui/button#v0.0.0-prealpha",
+    "datdot-ui-graphic": "github:datdot-ui/icon#v0.0.0-prealpha",
     "date-fns": "^2.16.1"
   }
 }
