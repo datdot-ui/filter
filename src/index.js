@@ -46,14 +46,14 @@ function filterOption ({ name, data }, parent_protocol) {
 // ---------------------------------------------------------------  
 
     // icon
-    // const iconOption = icon({ theme: { style: `${css.icon}` }, path: './src/assets', name: 'option' }, make_protocol(`icon-${count++}`))
+    // const iconOption = icon({ theme: { style: `${css.icon}` }, path: './src/svg', name: 'option' }, make_protocol(`icon-${count++}`))
     // button
     const theme1 = {
         style: `
             ${css['filter-option-button']} ${css['option-list']}
         `
     }
-    const filterOption = button({ role: 'listbox', theme: theme1, classlist: `${css['filter-option-button']}`, name: 'filter-option', icons: {select: { name: 'option', is_shadow: true, theme: {props: { fill: 'white'}}} } }, make_protocol(`filter-option-${count++}`))
+    const filterOption = button({ role: 'listbox', theme: theme1, classlist: `${css['filter-option-button']}`, name: 'filter-option', icons: {icon: { name: 'option', is_shadow: true, theme: {props: { fill: 'white'}}} } }, make_protocol(`filter-option-${count++}`))
     const optionAction = bel`<div class="${css.action} ${css.option}">${filterOption}</div>`
     // filter option
     const optionList = bel`<ul class="${css['option-list']}" onclick=${(e) => actionOptionList(e)}></ul>`
@@ -79,6 +79,7 @@ function filterOption ({ name, data }, parent_protocol) {
     function triggerOptionInactive () {
         document.body.addEventListener('click', (event) => {
             const target = event.target
+            const name = target.ariaLabel
             // * if target is same as filterOption, then keep optionList opening
             if (target === filterOption) return
             // * find css name first of filterOption button
